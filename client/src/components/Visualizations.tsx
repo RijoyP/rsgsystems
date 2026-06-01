@@ -40,11 +40,6 @@ export function Visualizations({ devices, events }: VisualizationsProps) {
     },
   ];
 
-  const totalSeverityEvents = severityData.reduce(
-    (total, item) => total + item.value,
-    0,
-  );
-
   const formatSeverityName = (name: string): string =>
     name.charAt(0).toUpperCase() + name.slice(1);
 
