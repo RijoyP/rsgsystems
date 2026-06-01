@@ -1,0 +1,37 @@
+[
+  {
+    "id": "evt-001",
+    "timestamp": "2026-05-28T08:12:00Z",
+    "severity": "info",
+    "source": "device-001",
+    "message": "Normal reading"
+  },
+  {
+    "id": "evt-002",
+    "timestamp": "2026-05-28T08:16:00Z",
+    "severity": "warning",
+    "source": "device-002",
+    "message": "Pressure above normal threshold"
+  },
+  {
+    "id": "evt-003",
+    "timestamp": "2026-05-28T08:20:00Z",
+    "severity": "critical",
+    "source": "device-003",
+    "message": "Device offline"
+  },
+  {
+    "id": "evt-004",
+    "timestamp": "2026-05-28T08:22:00Z",
+    "severity": "warning",
+    "source": "device-006",
+    "message": "Power fluctuation detected"
+  },
+  {
+    "id": "evt-005",
+    "timestamp": "2026-05-28T08:24:00Z",
+    "severity": "critical",
+    "source": "device-005",
+    "message": "Flow rate below safety threshold"
+  }
+]

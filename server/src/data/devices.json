@@ -1,0 +1,56 @@
+[
+  {
+    "id": "device-001",
+    "name": "Device A",
+    "type": "temperature",
+    "status": "ok",
+    "value": 42.4,
+    "unit": "C",
+    "lastSeen": "2026-05-28T08:15:00Z"
+  },
+  {
+    "id": "device-002",
+    "name": "Device B",
+    "type": "pressure",
+    "status": "warning",
+    "value": 8.7,
+    "unit": "bar",
+    "lastSeen": "2026-05-28T08:16:00Z"
+  },
+  {
+    "id": "device-003",
+    "name": "Device C",
+    "type": "humidity",
+    "status": "offline",
+    "value": 0,
+    "unit": "%",
+    "lastSeen": "2026-05-28T07:58:00Z"
+  },
+  {
+    "id": "device-004",
+    "name": "Device D",
+    "type": "temperature",
+    "status": "ok",
+    "value": 39.1,
+    "unit": "C",
+    "lastSeen": "2026-05-28T08:17:00Z"
+  },
+  {
+    "id": "device-005",
+    "name": "Device E",
+    "type": "flow",
+    "status": "critical",
+    "value": 1.3,
+    "unit": "L/s",
+    "lastSeen": "2026-05-28T08:03:00Z"
+  },
+  {
+    "id": "device-006",
+    "name": "Device F",
+    "type": "power",
+    "status": "warning",
+    "value": 218,
+    "unit": "V",
+    "lastSeen": "2026-05-28T08:18:00Z"
+  }
+]
