@@ -168,19 +168,13 @@ Each workflow runs test, build, and docker image build for its own side.
 
 ## What I Would Improve With More Time
 
-1. Add automated tests
-- Backend route/service tests (Vitest/Jest)
-- Frontend component tests (React Testing Library)
-
-2. Improve observability
+1. Improve observability
 - Structured logging
 - Request timing metrics
 
-3. Add richer charts
+2. Add richer charts
 - Time-series trend chart for selected devices
 - Interactive drill-down for events
 
-4. Add UX enhancements
-- Auto-refresh toggle
+3. Add UX enhancements
 - Search + pagination for events/devices
-- Dark mode/theme switch
