@@ -8,14 +8,7 @@ import { useDashboardData } from "./hooks/useDashboardData";
 const Visualizations = lazy(() => import("./components/Visualizations").then((module) => ({ default: module.Visualizations })));
 
 function App() {
-  const {
-    data,
-    loading,
-    error,
-    severityFilter,
-    setSeverityFilter,
-    filteredEvents,
-  } = useDashboardData();
+  const { data, loading, error } = useDashboardData();
 
   if (loading) {
     return <main className="app-shell">Loading dashboard data...</main>;
@@ -41,14 +34,10 @@ function App() {
 
       <section className="two-col">
         <div id="devices">
-          <DeviceTable devices={data.devices} />
+          <DeviceTable />
         </div>
         <div id="events">
-          <EventLog
-            events={filteredEvents}
-            filter={severityFilter}
-            onFilterChange={setSeverityFilter}
-          />
+          <EventLog />
         </div>
       </section>
 

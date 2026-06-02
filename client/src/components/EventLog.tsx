@@ -1,15 +1,40 @@
+import { useEffect, useMemo, useState } from "react";
+import { fetchEvents } from "../api/monitoringApi";
 import { type EventSeverity, type MonitoringEvent } from "../types/monitoring";
 import { formatTimestamp } from "../utils/date";
 
-interface EventLogProps {
-  events: MonitoringEvent[];
-  filter: EventSeverity | "all";
-  onFilterChange: (value: EventSeverity | "all") => void;
-}
-
 const FILTERS: Array<EventSeverity | "all"> = ["all", "info", "warning", "critical"];
 
-export function EventLog({ events, filter, onFilterChange }: EventLogProps) {
+export function EventLog() {
+  const [events, setEvents] = useState<MonitoringEvent[]>([]);
+  const [filter, setFilter] = useState<EventSeverity | "all">("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadEvents() {
+      try {
+        setLoading(true);
+        const result = await fetchEvents();
+        setEvents(result);
+      } catch {
+        setError("Unable to load events.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadEvents();
+  }, []);
+
+  const filteredEvents = useMemo(() => {
+    if (filter === "all") {
+      return events;
+    }
+
+    return events.filter((event) => event.severity === filter);
+  }, [events, filter]);
+
   return (
     <section className="panel">
       <div className="section-header">
@@ -20,7 +45,7 @@ export function EventLog({ events, filter, onFilterChange }: EventLogProps) {
               key={severity}
               type="button"
               className={`filter-btn ${filter === severity ? "active" : ""}`}
-              onClick={() => onFilterChange(severity)}
+              onClick={() => setFilter(severity)}
             >
               {severity}
             </button>
@@ -28,8 +53,11 @@ export function EventLog({ events, filter, onFilterChange }: EventLogProps) {
         </div>
       </div>
 
+      {loading ? <p>Loading events...</p> : null}
+      {error ? <p>{error}</p> : null}
+
       <ul className="event-list">
-        {events.map((event) => (
+        {filteredEvents.map((event) => (
           <li key={event.id} className="event-row">
             <span className={`badge badge-${event.severity}`}>{event.severity}</span>
             <p>{event.message}</p>
@@ -38,7 +66,7 @@ export function EventLog({ events, filter, onFilterChange }: EventLogProps) {
             </p>
           </li>
         ))}
-        {events.length === 0 ? <li className="empty-state">No events for this filter.</li> : null}
+        {filteredEvents.length === 0 ? <li className="empty-state">No events for this filter.</li> : null}
       </ul>
     </section>
   );

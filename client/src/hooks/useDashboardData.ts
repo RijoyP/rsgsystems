@@ -1,19 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { fetchDevices, fetchEvents } from "../api/monitoringApi";
-import {
-  type DashboardResponse,
-  type EventSeverity,
-  type MonitoringEvent,
-} from "../types/monitoring";
+import { type DashboardResponse } from "../types/monitoring";
 import { calculateOverview } from "../utils/overview";
 
 export function useDashboardData() {
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [severityFilter, setSeverityFilter] = useState<EventSeverity | "all">(
-    "all",
-  );
 
   useEffect(() => {
     async function loadData() {
@@ -35,24 +28,9 @@ export function useDashboardData() {
     void loadData();
   }, []);
 
-  const filteredEvents = useMemo((): MonitoringEvent[] => {
-    if (!data) {
-      return [];
-    }
-
-    if (severityFilter === "all") {
-      return data.events;
-    }
-
-    return data.events.filter((event) => event.severity === severityFilter);
-  }, [data, severityFilter]);
-
   return {
     data,
     loading,
     error,
-    severityFilter,
-    setSeverityFilter,
-    filteredEvents,
   };
 }

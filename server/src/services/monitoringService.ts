@@ -7,13 +7,29 @@ import {
   type SystemOverview,
 } from "../types/monitoring";
 
-const DATA_DIR = path.resolve(__dirname, "..", "data");
+const DATA_DIR_CANDIDATES = [
+  path.resolve(process.cwd(), "src", "data"),
+  path.resolve(process.cwd(), "server", "src", "data"),
+  path.resolve(process.cwd(), "dist", "data"),
+  path.resolve(process.cwd(), "server", "dist", "data"),
+  path.resolve(__dirname, "..", "data"),
+];
 
-function resolveDataPath(fileName: string): string {
-  if (!existsSync(DATA_DIR)) {
-    throw new Error(`Mock data directory not found: ${DATA_DIR}`);
+function resolveDataDir(): string {
+  const dataDir = DATA_DIR_CANDIDATES.find((candidate) => existsSync(candidate));
+
+  if (!dataDir) {
+    throw new Error(
+      `Mock data directory not found. Checked: ${DATA_DIR_CANDIDATES.join(", ")}`,
+    );
   }
 
+  return dataDir;
+}
+
+const DATA_DIR = resolveDataDir();
+
+function resolveDataPath(fileName: string): string {
   return path.join(DATA_DIR, fileName);
 }
 
