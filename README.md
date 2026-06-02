@@ -315,13 +315,9 @@ Each workflow runs test, build, and docker image build for its own side.
 
 ## What I Would Improve With More Time
 
-1. Improve observability
-- Structured logging
-- Request timing metrics
-
-2. Add richer charts
+1. Add richer charts
 - Time-series trend chart for selected devices
 - Interactive drill-down for events
 
-3. Add UX enhancements
+2. Add UX enhancements
 - Search + pagination for events/devices
