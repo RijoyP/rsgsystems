@@ -13,7 +13,9 @@ export const swaggerDocument = {
   ],
   tags: [
     { name: "Health" },
-    { name: "Monitoring" },
+    { name: "Device" },
+    { name: "Event" },
+    { name: "Overview" },
   ],
   paths: {
     "/api/health": {
@@ -40,7 +42,7 @@ export const swaggerDocument = {
     },
     "/api/devices": {
       get: {
-        tags: ["Monitoring"],
+        tags: ["Device"],
         summary: "List devices",
         responses: {
           "200": {
@@ -59,7 +61,7 @@ export const swaggerDocument = {
     },
     "/api/events": {
       get: {
-        tags: ["Monitoring"],
+        tags: ["Event"],
         summary: "List events",
         description:
           "Returns newest events first. Optional severity filter supports info, warning, or critical.",
@@ -91,7 +93,7 @@ export const swaggerDocument = {
     },
     "/api/overview": {
       get: {
-        tags: ["Monitoring"],
+        tags: ["Overview"],
         summary: "Get system overview",
         responses: {
           "200": {
