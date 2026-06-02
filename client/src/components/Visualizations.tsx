@@ -13,10 +13,7 @@ import {
   YAxis,
 } from "recharts";
 
-interface VisualizationsProps {
-}
-
-export function Visualizations(_props: VisualizationsProps) {
+export function Visualizations() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [events, setEvents] = useState<MonitoringEvent[]>([]);
   const [loading, setLoading] = useState(true);
