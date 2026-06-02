@@ -5,8 +5,6 @@ import {
   Bar,
   BarChart,
   Cell,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -92,33 +90,20 @@ export function Visualizations() {
           <h3>Event Severity Distribution</h3>
           <div className="chart-wrap">
             <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={severityData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={95}
-                  dataKey="value"
-                  nameKey="name"
-                  label={({ name, value, percent }) => {
-                    if (!name || typeof value !== "number") {
-                      return "";
-                    }
-
-                    const percentage = typeof percent === "number"
-                      ? Math.round(percent * 100)
-                      : 0;
-
-                    return `${formatSeverityName(String(name))}: ${value} (${percentage}%)`;
-                  }}
-                >
+              <BarChart data={severityData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={formatSeverityName}
+                />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                   {severityData.map((entry) => (
                     <Cell key={entry.name} fill={entry.color} />
                   ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </article>
