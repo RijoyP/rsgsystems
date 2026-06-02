@@ -1,3 +1,4 @@
+import "./telemetry.js";
 import { app } from "./app";
 
 const PORT = Number(process.env.PORT) || 4000;

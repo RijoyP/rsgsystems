@@ -1,0 +1,124 @@
+services:
+  server:
+    build:
+      context: ./server
+    container_name: rsgsystem-server
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      OTEL_SERVICE_NAME: rsgsystem-server
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: http://otel-collector:4318/v1/metrics
+    depends_on:
+      - otel-collector
+
+  client:
+    build:
+      context: ./client
+    container_name: rsgsystem-client
+    ports:
+      - "8080:80"
+    depends_on:
+      - server
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.107.0
+    container_name: rsgsystem-otel-collector
+    command:
+      - "--config=/etc/otelcol-contrib/config.yaml"
+    volumes:
+      - ./observability/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    depends_on:
+      - jaeger
+      - zipkin
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.59
+    container_name: rsgsystem-jaeger
+    command:
+      - "--collector.zipkin.host-port=:9412"
+    ports:
+      - "16686:16686"
+
+  zipkin:
+    image: openzipkin/zipkin:3.4
+    container_name: rsgsystem-zipkin
+    ports:
+      - "9411:9411"
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: rsgsystem-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - server
+      - otel-collector
+
+  grafana:
+    image: grafana/grafana-oss:11.2.2
+    container_name: rsgsystem-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/json/rsgsystem-overview.json
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+      - jaeger
+      - zipkin
+      - elasticsearch
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.3
+    container_name: rsgsystem-elasticsearch
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.14.3
+    container_name: rsgsystem-kibana
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+  kibana-init:
+    image: curlimages/curl:8.9.1
+    container_name: rsgsystem-kibana-init
+    entrypoint: ["/bin/sh", "/scripts/kibana-init.sh"]
+    volumes:
+      - ./observability/kibana/kibana-init.sh:/scripts/kibana-init.sh:ro
+    depends_on:
+      - kibana
+
+  fluent-bit:
+    image: fluent/fluent-bit:3.1
+    container_name: rsgsystem-fluent-bit
+    volumes:
+      - ./observability/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./observability/fluent-bit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - elasticsearch
+
+volumes:
+  grafana-data:
+  elasticsearch-data:
