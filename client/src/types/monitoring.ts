@@ -29,6 +29,4 @@ export interface SystemOverview {
 
 export interface DashboardResponse {
   overview: SystemOverview;
-  devices: Device[];
-  events: MonitoringEvent[];
 }

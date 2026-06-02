@@ -43,7 +43,7 @@ function App() {
 
       <section id="charts">
         <Suspense fallback={<div className="panel">Loading charts...</div>}>
-          <Visualizations devices={data.devices} events={data.events} />
+          <Visualizations />
         </Suspense>
       </section>
     </main>

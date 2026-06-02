@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { fetchDevices, fetchEvents } from "../api/monitoringApi";
 import { type Device, type MonitoringEvent } from "../types/monitoring";
 import {
   Bar,
@@ -12,11 +14,39 @@ import {
 } from "recharts";
 
 interface VisualizationsProps {
-  devices: Device[];
-  events: MonitoringEvent[];
 }
 
-export function Visualizations({ devices, events }: VisualizationsProps) {
+export function Visualizations(_props: VisualizationsProps) {
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [events, setEvents] = useState<MonitoringEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadVisualizationData() {
+      try {
+        setLoading(true);
+        const [deviceList, eventList] = await Promise.all([fetchDevices(), fetchEvents()]);
+        setDevices(deviceList);
+        setEvents(eventList);
+      } catch {
+        setError("Unable to load chart data.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadVisualizationData();
+  }, []);
+
+  if (loading) {
+    return <section className="panel visual-panel">Loading charts...</section>;
+  }
+
+  if (error) {
+    return <section className="panel visual-panel">{error}</section>;
+  }
+
   const deviceValueData = devices.map((device) => ({
     name: device.name,
     value: Number(device.value.toFixed(2)),

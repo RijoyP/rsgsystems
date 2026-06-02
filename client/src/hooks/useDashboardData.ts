@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { fetchDevices, fetchEvents } from "../api/monitoringApi";
+import { fetchOverview } from "../api/monitoringApi";
 import { type DashboardResponse } from "../types/monitoring";
-import { calculateOverview } from "../utils/overview";
 
 export function useDashboardData() {
   const [data, setData] = useState<DashboardResponse | null>(null);
@@ -12,14 +11,10 @@ export function useDashboardData() {
     async function loadData() {
       try {
         setLoading(true);
-        const [devices, events] = await Promise.all([fetchDevices(), fetchEvents()]);
-        setData({
-          overview: calculateOverview(devices),
-          devices,
-          events,
-        });
+        const overview = await fetchOverview();
+        setData({ overview });
       } catch {
-        setError("Unable to load devices/events data. Please check that the backend is running.");
+        setError("Unable to load overview data. Please check that the backend is running.");
       } finally {
         setLoading(false);
       }
