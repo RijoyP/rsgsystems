@@ -192,7 +192,7 @@ jobs:
           scan-type: fs
           scan-ref: ${{ inputs.service_path }}
           format: template
-          template: "@/contrib/junit.tpl"
+          template: "@.github/trivy/junit.tpl"
           output: trivy-${{ inputs.service_path }}-junit.xml
           severity: CRITICAL,HIGH,MEDIUM
           ignore-unfixed: true
