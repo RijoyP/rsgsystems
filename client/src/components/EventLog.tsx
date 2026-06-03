@@ -1,13 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
-import { fetchEvents } from "../api/monitoringApi";
+import { useEffect, useState } from "react";
+import { fetchEventPage } from "../api/monitoringApi";
 import { type EventSeverity, type MonitoringEvent } from "../types/monitoring";
 import { formatTimestamp } from "../utils/date";
 
 const FILTERS: Array<EventSeverity | "all"> = ["all", "info", "warning", "critical"];
+const PAGE_SIZE = 6;
 
 export function EventLog() {
   const [events, setEvents] = useState<MonitoringEvent[]>([]);
   const [filter, setFilter] = useState<EventSeverity | "all">("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,8 +18,9 @@ export function EventLog() {
     async function loadEvents() {
       try {
         setLoading(true);
-        const result = await fetchEvents();
-        setEvents(result);
+        const result = await fetchEventPage({ page, pageSize: PAGE_SIZE }, filter);
+        setEvents(result.items);
+        setTotalPages(result.totalPages);
       } catch {
         setError("Unable to load events.");
       } finally {
@@ -25,15 +29,7 @@ export function EventLog() {
     }
 
     void loadEvents();
-  }, []);
-
-  const filteredEvents = useMemo(() => {
-    if (filter === "all") {
-      return events;
-    }
-
-    return events.filter((event) => event.severity === filter);
-  }, [events, filter]);
+  }, [filter, page]);
 
   return (
     <section className="panel">
@@ -45,7 +41,10 @@ export function EventLog() {
               key={severity}
               type="button"
               className={`filter-btn ${filter === severity ? "active" : ""}`}
-              onClick={() => setFilter(severity)}
+              onClick={() => {
+                setFilter(severity);
+                setPage(1);
+              }}
             >
               {severity}
             </button>
@@ -57,7 +56,7 @@ export function EventLog() {
       {error ? <p>{error}</p> : null}
 
       <ul className="event-list">
-        {filteredEvents.map((event) => (
+        {events.map((event) => (
           <li key={event.id} className="event-row">
             <span className={`badge badge-${event.severity}`}>{event.severity}</span>
             <p>{event.message}</p>
@@ -66,8 +65,28 @@ export function EventLog() {
             </p>
           </li>
         ))}
-        {filteredEvents.length === 0 ? <li className="empty-state">No events for this filter.</li> : null}
+        {events.length === 0 ? <li className="empty-state">No events for this filter.</li> : null}
       </ul>
+
+      <div className="pagination" aria-label="Event pagination">
+        <button
+          type="button"
+          className="page-btn"
+          onClick={() => setPage((current) => Math.max(1, current - 1))}
+          disabled={page <= 1 || loading}
+        >
+          Previous
+        </button>
+        <span className="page-indicator">Page {page} of {totalPages}</span>
+        <button
+          type="button"
+          className="page-btn"
+          onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+          disabled={page >= totalPages || loading}
+        >
+          Next
+        </button>
+      </div>
     </section>
   );
 }

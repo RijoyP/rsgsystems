@@ -1,0 +1,162 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: rsgsystem-managed-alerts
+    folder: RSGSYSTEM
+    interval: 1m
+    rules:
+      - uid: rsg-http-p95-latency
+        title: HTTP P95 Latency High
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              editorMode: code
+              expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="rsgsystem-server", route!="/metrics"}[5m])) by (le))
+              instant: true
+              intervalMs: 1000
+              legendFormat: ""
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: last
+              refId: B
+              settings:
+                mode: dropNN
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 2
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: API latency p95 is above 2 seconds.
+          runbook_url: https://grafana.com/docs/grafana/latest/alerting/
+        labels:
+          severity: warning
+          source: prometheus
+
+      - uid: rsg-es-error-logs
+        title: Error Logs Detected In Elasticsearch
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: elasticsearch
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              alias: ""
+              bucketAggs:
+                - field: "@timestamp"
+                  id: "2"
+                  settings:
+                    interval: auto
+                    min_doc_count: "0"
+                    trimEdges: "0"
+                  type: date_histogram
+              intervalMs: 1000
+              maxDataPoints: 43200
+              metrics:
+                - id: "1"
+                  type: count
+              query: "(container_name:rsgsystem-server OR rsg_service:server) AND (log:*error* OR message:*error* OR log:*exception* OR message:*exception*)"
+              refId: A
+              timeField: "@timestamp"
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: sum
+              refId: B
+              settings:
+                mode: dropNN
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 2
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 3m
+        annotations:
+          summary: More than 2 server error/exception log entries detected in the last 5 minutes.
+          runbook_url: https://grafana.com/docs/grafana/latest/alerting/
+        labels:
+          severity: critical
+          source: elasticsearch

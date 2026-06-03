@@ -20,6 +20,14 @@ export interface MonitoringEvent {
   message: string;
 }
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
 export interface SystemOverview {
   totalDevices: number;
   okDevices: number;

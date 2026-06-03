@@ -1,4 +1,10 @@
-import { fetchDevices, fetchEvents, fetchOverview } from "./monitoringApi";
+import {
+  fetchDevicePage,
+  fetchDevices,
+  fetchEventPage,
+  fetchEvents,
+  fetchOverview,
+} from "./monitoringApi";
 
 describe("monitoringApi", () => {
   const originalFetch = global.fetch;
@@ -55,5 +61,29 @@ describe("monitoringApi", () => {
     await expect(fetchDevices()).resolves.toEqual([]);
 
     expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("fetches paged devices with query params", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ items: [], page: 1, pageSize: 5, total: 0, totalPages: 1 }),
+    });
+
+    await fetchDevicePage({ page: 1, pageSize: 5 });
+
+    expect(global.fetch).toHaveBeenCalledWith("/api/devices?page=1&pageSize=5", {
+      headers: { Authorization: "Bearer rsg-deviceread-token" },
+    });
+  });
+
+  it("fetches paged events with severity query", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ items: [], page: 1, pageSize: 6, total: 0, totalPages: 1 }),
+    });
+
+    await fetchEventPage({ page: 1, pageSize: 6 }, "critical");
+
+    expect(global.fetch).toHaveBeenCalledWith("/api/events?page=1&pageSize=6&severity=critical", undefined);
   });
 });

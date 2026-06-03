@@ -288,6 +288,39 @@ What is wired:
 - Includes `http_requests_total`, `http_responses_total`, `http_request_duration_seconds`, and process CPU metrics.
 - Logging: container logs are shipped by Fluent Bit to Elasticsearch and are viewable in Kibana.
 
+### Alerting (Grafana Unified Alerting)
+
+Provisioned Grafana alerts are included for:
+
+- Slow HTTP responses (P95 latency)
+- Error logs detected in Elasticsearch
+
+Rules are provisioned from:
+
+- `observability/grafana/provisioning/alerting/rules.yml`
+
+Default thresholds:
+
+- HTTP P95 latency > `2s` for `5m`
+- Server error/exception log count > `2` for `3m` (last `5m` window)
+
+How to view alerts:
+
+- Open Grafana at http://localhost:3000
+- Navigate to **Alerting > Alert rules**
+- Folder: `RSGSYSTEM`
+
+How to tune thresholds:
+
+- Edit `observability/grafana/provisioning/alerting/rules.yml`
+- Update threshold values in the expression models
+- Restart Grafana container: `docker compose restart grafana`
+
+Quick test ideas:
+
+- Latency alert: temporarily add an artificial delay in one API route or lower the latency threshold.
+- Error-log alert: trigger an intentional server error and verify log lines with `error` or `exception` appear.
+
 ### Troubleshooting
 
 - If `docker compose up` fails, run `docker compose ps` and `docker compose logs <service-name>` to isolate the failing service.

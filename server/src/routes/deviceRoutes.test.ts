@@ -34,4 +34,21 @@ describe("deviceRoutes", () => {
       message: "Forbidden. Required role: deviceread.",
     });
   });
+
+  it("GET /api/devices?page=1&pageSize=2 returns paginated payload", async () => {
+    const response = await request(app)
+      .get("/api/devices")
+      .query({ page: "1", pageSize: "2" })
+      .set("Authorization", `Bearer ${DEFAULT_DEVICE_READ_TOKEN}`);
+
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body.items)).toBe(true);
+    expect(response.body.items.length).toBeLessThanOrEqual(2);
+    expect(response.body).toMatchObject({
+      page: 1,
+      pageSize: 2,
+    });
+    expect(response.body.total).toBeGreaterThan(0);
+    expect(response.body.totalPages).toBeGreaterThan(0);
+  });
 });

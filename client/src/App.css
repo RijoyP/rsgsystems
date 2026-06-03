@@ -213,6 +213,33 @@
   color: #6f5430;
 }
 
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.page-btn {
+  border: 1px solid #d9b67f;
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  color: #5a3907;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-indicator {
+  color: #6f5430;
+  font-size: 0.88rem;
+}
+
 .visual-panel h3 {
   margin: 0 0 0.5rem;
   color: #5a3907;

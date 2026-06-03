@@ -22,6 +22,7 @@ datasources:
     editable: true
 
   - name: Elasticsearch
+    uid: elasticsearch
     type: elasticsearch
     access: proxy
     url: http://elasticsearch:9200
