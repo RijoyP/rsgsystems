@@ -35,6 +35,9 @@ jobs:
       - name: Install client dependencies
         run: npm ci --prefix client
 
+      - name: Install ESLint JUnit formatter
+        run: npm install --no-save --prefix client eslint-formatter-junit
+
       - name: Ensure client lint-results directory exists
         run: mkdir -p client/lint-results
 
@@ -50,7 +53,7 @@ jobs:
           exit 0
 
       - name: Publish client lint results
-        if: always()
+        if: always() && hashFiles('client/lint-results/junit.xml') != ''
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: client/lint-results/junit.xml
