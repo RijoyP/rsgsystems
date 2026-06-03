@@ -1,0 +1,214 @@
+name: Service CI Template
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        description: Service display name (for example Client or Server)
+        required: true
+        type: string
+      service_path:
+        description: Service folder path (for example client or server)
+        required: true
+        type: string
+      docker_image:
+        description: Docker image tag prefix (for example rsgsystem-client)
+        required: true
+        type: string
+
+jobs:
+  lint:
+    name: Lint ${{ inputs.service_name }}
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefix ${{ inputs.service_path }}
+
+      - name: Install ESLint JUnit formatter
+        run: npm install --no-save --prefix ${{ inputs.service_path }} eslint-formatter-junit
+
+      - name: Ensure lint-results directory exists
+        run: mkdir -p ${{ inputs.service_path }}/lint-results
+
+      - name: Run lint and capture report
+        id: lint
+        continue-on-error: true
+        run: |
+          set +e
+          npm run lint --prefix ${{ inputs.service_path }} -- --format junit --output-file ${{ inputs.service_path }}/lint-results/junit.xml > ${{ inputs.service_path }}/lint-results/lint.log 2>&1
+          status=$?
+          cat ${{ inputs.service_path }}/lint-results/lint.log
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Publish lint results
+        if: always() && hashFiles(format('{0}/lint-results/junit.xml', inputs.service_path)) != ''
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: ${{ inputs.service_path }}/lint-results/junit.xml
+
+      - name: Upload lint artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.service_path }}-lint-results
+          path: |
+            ${{ inputs.service_path }}/lint-results/junit.xml
+            ${{ inputs.service_path }}/lint-results/lint.log
+
+      - name: Fail on lint issues
+        if: steps.lint.outputs.exit_code != '0'
+        run: exit 1
+
+  test:
+    name: Test ${{ inputs.service_name }}
+    needs: [lint]
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefix ${{ inputs.service_path }}
+
+      - name: Install JUnit reporter
+        run: npm install --no-save --prefix ${{ inputs.service_path }} jest-junit
+
+      - name: Ensure test-results directory exists
+        run: mkdir -p ${{ inputs.service_path }}/test-results
+
+      - name: Run tests
+        run: npm run test --prefix ${{ inputs.service_path }} -- --ci --reporters=default --reporters=jest-junit
+        env:
+          JEST_JUNIT_OUTPUT_FILE: ${{ github.workspace }}/${{ inputs.service_path }}/test-results/junit.xml
+
+      - name: Publish test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: ${{ inputs.service_path }}/test-results/junit.xml
+
+  build:
+    name: Build ${{ inputs.service_name }}
+    needs: [test]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --prefix ${{ inputs.service_path }}
+
+      - name: Build
+        run: npm run build --prefix ${{ inputs.service_path }}
+
+  docker:
+    name: Docker ${{ inputs.service_name }}
+    needs: [build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: docker build -t ${{ inputs.docker_image }}:ci ./${{ inputs.service_path }}
+
+  trivy:
+    name: Trivy ${{ inputs.service_name }} Scan
+    needs: [docker]
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Trivy scan (SARIF)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: ${{ inputs.service_path }}
+          format: sarif
+          output: trivy-${{ inputs.service_path }}.sarif
+          severity: CRITICAL,HIGH,MEDIUM
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF to Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-${{ inputs.service_path }}.sarif
+
+      - name: Run Trivy scan (table report)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: ${{ inputs.service_path }}
+          format: table
+          output: trivy-${{ inputs.service_path }}.txt
+          severity: CRITICAL,HIGH,MEDIUM
+          ignore-unfixed: true
+
+      - name: Run Trivy scan (JUnit report)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: ${{ inputs.service_path }}
+          format: template
+          template: "@/contrib/junit.tpl"
+          output: trivy-${{ inputs.service_path }}-junit.xml
+          severity: CRITICAL,HIGH,MEDIUM
+          ignore-unfixed: true
+
+      - name: Publish Trivy results as test cases
+        if: always() && hashFiles(format('trivy-{0}-junit.xml', inputs.service_path)) != ''
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: trivy-${{ inputs.service_path }}-junit.xml
+
+      - name: Upload Trivy artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-${{ inputs.service_path }}-results
+          path: |
+            trivy-${{ inputs.service_path }}.sarif
+            trivy-${{ inputs.service_path }}.txt
+            trivy-${{ inputs.service_path }}-junit.xml
