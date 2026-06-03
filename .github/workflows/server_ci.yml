@@ -59,11 +59,13 @@ jobs:
       - name: Install JUnit reporter
         run: npm install --no-save --prefix server jest-junit
 
+      - name: Ensure server test-results directory exists
+        run: mkdir -p server/test-results
+
       - name: Run server tests
         run: npm run test --prefix server -- --ci --reporters=default --reporters=jest-junit
         env:
-          JEST_JUNIT_OUTPUT_DIR: server/test-results
-          JEST_JUNIT_OUTPUT_NAME: junit.xml
+          JEST_JUNIT_OUTPUT_FILE: ${{ github.workspace }}/server/test-results/junit.xml
 
       - name: Publish server test results
         if: always()
