@@ -46,7 +46,10 @@ function App() {
           <DeviceTable />
         </div>
         <div id="events">
-          <EventLog requestedFilter={drilldownFilter} requestId={drilldownRequestId} />
+          <EventLog
+            key={`event-log-${drilldownRequestId}`}
+            initialFilter={drilldownFilter ?? "all"}
+          />
         </div>
       </section>
 
