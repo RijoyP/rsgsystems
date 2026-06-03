@@ -18,6 +18,9 @@ jobs:
   lint_server:
     name: Lint Server
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
 
     steps:
       - name: Checkout
@@ -32,8 +35,38 @@ jobs:
       - name: Install server dependencies
         run: npm ci --prefix server
 
-      - name: Run server lint
-        run: npm run lint --prefix server
+      - name: Ensure server lint-results directory exists
+        run: mkdir -p server/lint-results
+
+      - name: Run server lint and capture report
+        id: server_lint
+        continue-on-error: true
+        run: |
+          set +e
+          npm run lint --prefix server -- --format junit --output-file server/lint-results/junit.xml > server/lint-results/lint.log 2>&1
+          status=$?
+          cat server/lint-results/lint.log
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Publish server lint results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: server/lint-results/junit.xml
+
+      - name: Upload server lint artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-lint-results
+          path: |
+            server/lint-results/junit.xml
+            server/lint-results/lint.log
+
+      - name: Fail on server lint issues
+        if: steps.server_lint.outputs.exit_code != '0'
+        run: exit 1
 
   test_server:
     name: Test Server
@@ -108,3 +141,50 @@ jobs:
 
       - name: Build server Docker image
         run: docker build -t rsgsystem-server:ci ./server
+
+  trivy_server:
+    name: Trivy Server Scan
+    needs: [docker_server]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Trivy scan for server (SARIF)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: server
+          format: sarif
+          output: trivy-server.sarif
+          severity: CRITICAL,HIGH,MEDIUM
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF to Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-server.sarif
+
+      - name: Run Trivy scan for server (table report)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: server
+          format: table
+          output: trivy-server.txt
+          severity: CRITICAL,HIGH,MEDIUM
+          ignore-unfixed: true
+
+      - name: Upload Trivy server artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-server-results
+          path: |
+            trivy-server.sarif
+            trivy-server.txt
