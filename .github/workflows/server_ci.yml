@@ -39,6 +39,9 @@ jobs:
     name: Test Server
     needs: [lint_server]
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
 
     steps:
       - name: Checkout
@@ -53,8 +56,20 @@ jobs:
       - name: Install server dependencies
         run: npm ci --prefix server
 
+      - name: Install JUnit reporter
+        run: npm install --no-save --prefix server jest-junit
+
       - name: Run server tests
-        run: npm run test --prefix server
+        run: npm run test --prefix server -- --ci --reporters=default --reporters=jest-junit
+        env:
+          JEST_JUNIT_OUTPUT_DIR: server/test-results
+          JEST_JUNIT_OUTPUT_NAME: junit.xml
+
+      - name: Publish server test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: server/test-results/junit.xml
 
   build_server:
     name: Build Server

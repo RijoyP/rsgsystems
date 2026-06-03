@@ -39,6 +39,9 @@ jobs:
     name: Test Client
     needs: [lint_client]
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
 
     steps:
       - name: Checkout
@@ -53,8 +56,20 @@ jobs:
       - name: Install client dependencies
         run: npm ci --prefix client
 
+      - name: Install JUnit reporter
+        run: npm install --no-save --prefix client jest-junit
+
       - name: Run client tests
-        run: npm run test --prefix client
+        run: npm run test --prefix client -- --ci --reporters=default --reporters=jest-junit
+        env:
+          JEST_JUNIT_OUTPUT_DIR: client/test-results
+          JEST_JUNIT_OUTPUT_NAME: junit.xml
+
+      - name: Publish client test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: client/test-results/junit.xml
 
   build_client:
     name: Build Client
