@@ -30,7 +30,23 @@ A full-stack local dashboard built for your evaluation using:
 - Device status distribution bars
 - Event severity distribution bars
 
-5. Local Execution
+5. Authorization
+- Bearer token protection on the devices API (`GET /api/devices`)
+- Role guard requirement: `deviceread`
+- Proper 401 and 403 responses for missing/invalid access
+
+6. Drill-Down Features
+- Click a severity bar in charts to jump to Event Log and auto-apply severity filter
+- Event Log supports severity filters (`all`, `info`, `warning`, `critical`)
+- Device and Event views support pagination
+
+7. Observability
+- Logging pipeline with Fluent Bit -> Elasticsearch -> Kibana
+- Distributed tracing with OpenTelemetry -> Jaeger and Zipkin
+- Metrics collection with Prometheus and Grafana dashboards
+- Pre-provisioned Grafana unified alert rules
+
+8. Local Execution
 - Runs fully on localhost
 - Minimal setup
 - Uses local JSON files in `server/src/data`
@@ -77,6 +93,29 @@ npm run dev
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:4000
 - Swagger UI: http://localhost:4000/api-docs
+
+## Authorization
+
+The devices endpoint is protected by a bearer token role check.
+
+- Protected endpoint: `GET /api/devices`
+- Required header format: `Authorization: Bearer <token>`
+- Default token: `rsg-deviceread-token`
+- Required role: `deviceread`
+- Missing/invalid token response: `401`
+- Valid token without role response: `403`
+
+Use a custom token by setting:
+
+```bash
+DEVICE_READ_TOKEN=your-token-value
+```
+
+Example request:
+
+```bash
+curl -H "Authorization: Bearer rsg-deviceread-token" http://localhost:4000/api/devices
+```
 
 ## Build
 
@@ -239,6 +278,16 @@ Then open:
 - Jaeger UI: choose service `rsgsystem-server` and click Find Traces.
 - Zipkin UI: search for service `rsgsystem-server`.
 
+### Drill-Down (Charts -> Events)
+
+The dashboard supports a direct drill-down interaction:
+
+- In **Event Severity Distribution**, click a severity bar (`info`, `warning`, `critical`).
+- The app scrolls to the Event Log section.
+- The Event Log is reloaded with that severity pre-selected.
+
+This allows quick investigation from aggregate chart signal to detailed event rows.
+
 ### Metrics (Prometheus + Grafana)
 
 - Server metrics endpoint: `http://localhost:4000/metrics`
@@ -335,7 +384,30 @@ Workflow files:
 1. `.github/workflows/server_ci.yml`
 2. `.github/workflows/client_ci.yml`
 
-Each workflow runs test, build, and docker image build for its own side.
+Each workflow reuses `.github/workflows/service_ci_template.yml` and runs staged CI for its own side.
+
+Pipeline stages (in order):
+
+1. `lint`
+- Runs ESLint and publishes JUnit-formatted lint results as checks/artifacts.
+
+2. `test`
+- Runs Jest tests and publishes JUnit test reports.
+
+3. `build`
+- Builds the service (`npm run build`).
+
+4. `docker`
+- Builds Docker image (`rsgsystem-server:ci` or `rsgsystem-client:ci`).
+
+5. `trivy`
+- Runs Trivy security scanning (SARIF, table, JUnit output).
+- Uploads SARIF to GitHub Security and publishes scan results.
+
+Trigger behavior:
+
+- `server_ci.yml` runs on server-related path changes.
+- `client_ci.yml` runs on client-related path changes.
 
 ## Technical Choices
 
@@ -350,7 +422,7 @@ Each workflow runs test, build, and docker image build for its own side.
 
 1. Add richer charts
 - Time-series trend chart for selected devices
-- Interactive drill-down for events
+- Multi-dimensional drill-down (device + severity + time window)
 
 2. Add UX enhancements
 - Search + pagination for events/devices
