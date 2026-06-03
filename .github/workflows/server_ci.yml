@@ -150,6 +150,7 @@ jobs:
     needs: [docker_server]
     runs-on: ubuntu-latest
     permissions:
+      checks: write
       contents: read
       security-events: write
 
@@ -183,6 +184,23 @@ jobs:
           severity: CRITICAL,HIGH,MEDIUM
           ignore-unfixed: true
 
+      - name: Run Trivy scan for server (JUnit report)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: server
+          format: template
+          template: "@/contrib/junit.tpl"
+          output: trivy-server-junit.xml
+          severity: CRITICAL,HIGH,MEDIUM
+          ignore-unfixed: true
+
+      - name: Publish Trivy server results as test cases
+        if: always() && hashFiles('trivy-server-junit.xml') != ''
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: trivy-server-junit.xml
+
       - name: Upload Trivy server artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -191,3 +209,4 @@ jobs:
           path: |
             trivy-server.sarif
             trivy-server.txt
+            trivy-server-junit.xml
