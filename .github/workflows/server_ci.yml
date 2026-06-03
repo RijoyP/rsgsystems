@@ -19,6 +19,10 @@ on:
 jobs:
   ci:
     uses: ./.github/workflows/service_ci_template.yml
+    permissions:
+      checks: write
+      contents: read
+      security-events: write
     with:
       service_name: Server
       service_path: server
