@@ -44,6 +44,7 @@ export const swaggerDocument = {
       get: {
         tags: ["Device"],
         summary: "List devices",
+        security: [{ bearerAuth: [] }],
         responses: {
           "200": {
             description: "Array of devices",
@@ -55,6 +56,12 @@ export const swaggerDocument = {
                 },
               },
             },
+          },
+          "401": {
+            description: "Missing or invalid bearer token",
+          },
+          "403": {
+            description: "Bearer token does not include deviceread role",
           },
         },
       },
@@ -109,6 +116,13 @@ export const swaggerDocument = {
     },
   },
   components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "Token",
+      },
+    },
     schemas: {
       Device: {
         type: "object",

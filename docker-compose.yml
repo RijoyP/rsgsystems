@@ -13,6 +13,12 @@ services:
       OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: http://otel-collector:4318/v1/metrics
     depends_on:
       - otel-collector
+    labels:
+      rsg_service: server
+    logging:
+      driver: json-file
+      options:
+        labels: "rsg_service"
 
   client:
     build:
@@ -22,6 +28,12 @@ services:
       - "8080:80"
     depends_on:
       - server
+    labels:
+      rsg_service: client
+    logging:
+      driver: json-file
+      options:
+        labels: "rsg_service"
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.107.0
@@ -33,6 +45,12 @@ services:
     depends_on:
       - jaeger
       - zipkin
+    labels:
+      rsg_service: otel-collector
+    logging:
+      driver: json-file
+      options:
+        labels: "rsg_service"
 
   jaeger:
     image: jaegertracing/all-in-one:1.59
@@ -41,12 +59,24 @@ services:
       - "--collector.zipkin.host-port=:9412"
     ports:
       - "16686:16686"
+    labels:
+      rsg_service: jaeger
+    logging:
+      driver: json-file
+      options:
+        labels: "rsg_service"
 
   zipkin:
     image: openzipkin/zipkin:3.4
     container_name: rsgsystem-zipkin
     ports:
       - "9411:9411"
+    labels:
+      rsg_service: zipkin
+    logging:
+      driver: json-file
+      options:
+        labels: "rsg_service"
 
   prometheus:
     image: prom/prometheus:v2.54.1
@@ -58,6 +88,12 @@ services:
     depends_on:
       - server
       - otel-collector
+    labels:
+      rsg_service: prometheus
+    logging:
+      driver: json-file
+      options:
+        labels: "rsg_service"
 
   grafana:
     image: grafana/grafana-oss:11.2.2
@@ -76,6 +112,12 @@ services:
       - jaeger
       - zipkin
       - elasticsearch
+    labels:
+      rsg_service: grafana
+    logging:
+      driver: json-file
+      options:
+        labels: "rsg_service"
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.14.3
@@ -88,6 +130,12 @@ services:
       - "9200:9200"
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
+    labels:
+      rsg_service: elasticsearch
+    logging:
+      driver: json-file
+      options:
+        labels: "rsg_service"
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.14.3
@@ -98,6 +146,12 @@ services:
       - "5601:5601"
     depends_on:
       - elasticsearch
+    labels:
+      rsg_service: kibana
+    logging:
+      driver: json-file
+      options:
+        labels: "rsg_service"
 
   kibana-init:
     image: curlimages/curl:8.9.1
@@ -107,6 +161,12 @@ services:
       - ./observability/kibana/kibana-init.sh:/scripts/kibana-init.sh:ro
     depends_on:
       - kibana
+    labels:
+      rsg_service: kibana-init
+    logging:
+      driver: json-file
+      options:
+        labels: "rsg_service"
 
   fluent-bit:
     image: fluent/fluent-bit:3.1
@@ -118,6 +178,12 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       - elasticsearch
+    labels:
+      rsg_service: fluent-bit
+    logging:
+      driver: json-file
+      options:
+        labels: "rsg_service"
 
 volumes:
   grafana-data:
