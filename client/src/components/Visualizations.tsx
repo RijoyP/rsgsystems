@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchDevices, fetchEvents } from "../api/monitoringApi";
-import { type Device, type MonitoringEvent } from "../types/monitoring";
+import { type Device, type EventSeverity, type MonitoringEvent } from "../types/monitoring";
 import {
   Bar,
   BarChart,
@@ -11,7 +11,11 @@ import {
   YAxis,
 } from "recharts";
 
-export function Visualizations() {
+interface VisualizationsProps {
+  onSeveritySelect?: (severity: EventSeverity) => void;
+}
+
+export function Visualizations({ onSeveritySelect }: VisualizationsProps) {
   const [devices, setDevices] = useState<Device[]>([]);
   const [events, setEvents] = useState<MonitoringEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,6 +72,10 @@ export function Visualizations() {
   const formatSeverityName = (name: string): string =>
     name.charAt(0).toUpperCase() + name.slice(1);
 
+  const handleSeverityClick = (severity: EventSeverity) => {
+    onSeveritySelect?.(severity);
+  };
+
   return (
     <section className="panel visual-panel">
       <h2 className="panel-title">Charts (Recharts)</h2>
@@ -100,7 +108,12 @@ export function Visualizations() {
                 <Tooltip />
                 <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                   {severityData.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
+                    <Cell
+                      key={entry.name}
+                      fill={entry.color}
+                      cursor="pointer"
+                      onClick={() => handleSeverityClick(entry.name as EventSeverity)}
+                    />
                   ))}
                 </Bar>
               </BarChart>

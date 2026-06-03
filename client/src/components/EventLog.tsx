@@ -6,13 +6,27 @@ import { formatTimestamp } from "../utils/date";
 const FILTERS: Array<EventSeverity | "all"> = ["all", "info", "warning", "critical"];
 const PAGE_SIZE = 6;
 
-export function EventLog() {
+interface EventLogProps {
+  requestedFilter?: EventSeverity | null;
+  requestId?: number;
+}
+
+export function EventLog({ requestedFilter = null, requestId = 0 }: EventLogProps) {
   const [events, setEvents] = useState<MonitoringEvent[]>([]);
   const [filter, setFilter] = useState<EventSeverity | "all">("all");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!requestedFilter) {
+      return;
+    }
+
+    setFilter(requestedFilter);
+    setPage(1);
+  }, [requestedFilter, requestId]);
 
   useEffect(() => {
     async function loadEvents() {

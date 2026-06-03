@@ -1,14 +1,23 @@
 import "./App.css";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useState } from "react";
 import { DeviceTable } from "./components/DeviceTable";
 import { EventLog } from "./components/EventLog";
 import { OverviewCards } from "./components/OverviewCards";
 import { useDashboardData } from "./hooks/useDashboardData";
+import { type EventSeverity } from "./types/monitoring";
 
 const Visualizations = lazy(() => import("./components/Visualizations").then((module) => ({ default: module.Visualizations })));
 
 function App() {
   const { data, loading, error } = useDashboardData();
+  const [drilldownFilter, setDrilldownFilter] = useState<EventSeverity | null>(null);
+  const [drilldownRequestId, setDrilldownRequestId] = useState(0);
+
+  const handleSeverityDrilldown = (severity: EventSeverity) => {
+    setDrilldownFilter(severity);
+    setDrilldownRequestId((current) => current + 1);
+    document.getElementById("events")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   if (loading) {
     return <main className="app-shell">Loading dashboard data...</main>;
@@ -37,13 +46,13 @@ function App() {
           <DeviceTable />
         </div>
         <div id="events">
-          <EventLog />
+          <EventLog requestedFilter={drilldownFilter} requestId={drilldownRequestId} />
         </div>
       </section>
 
       <section id="charts">
         <Suspense fallback={<div className="panel">Loading charts...</div>}>
-          <Visualizations />
+          <Visualizations onSeveritySelect={handleSeverityDrilldown} />
         </Suspense>
       </section>
     </main>
