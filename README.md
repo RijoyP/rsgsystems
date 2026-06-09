@@ -361,6 +361,41 @@ What is wired:
 - Includes `http_requests_total`, `http_responses_total`, `http_request_duration_seconds`, and process CPU metrics.
 - Logging: container logs are shipped by Fluent Bit to Elasticsearch and are viewable in Kibana.
 
+### Investigating a Production Issue
+
+When something goes wrong, use the three tools in order:
+
+**Step 1 — Metrics (Grafana)**
+Open Grafana and check request rate, error rate and latency. This tells you *when* the problem started and how bad it is. The pre-provisioned alert for P95 latency above 2 seconds will have already fired to Microsoft Teams before you open it.
+
+Useful PromQL queries:
+```promql
+# P95 latency over last 5 minutes
+histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="rsgsystem-server"}[5m])) by (le))
+
+# Error response rate
+sum(rate(http_responses_total{status_code=~"5.."}[5m]))
+```
+
+**Step 2 — Traces (Jaeger)**
+Filter traces by the time window identified in Grafana. Sort by duration to find the slowest or failed request. The trace shows the full request path — which route was hit, which function was slow, and how long each step took.
+
+- Open Jaeger at http://localhost:16686
+- Select service `rsgsystem-server`
+- Filter by time range and sort by duration
+
+**Step 3 — Logs (Kibana)**
+If the trace shows an error but the message is not detailed enough, open Kibana and filter by `container_name: rsgsystem-server` and the same time window to find the full error message or stack trace.
+
+- Open Kibana at http://localhost:5601
+- Select data view `Docker Logs`
+- Filter: `container_name: rsgsystem-server AND log: *error*`
+
+Each tool answers a different question:
+- **Grafana** — when did it break and how bad is it
+- **Jaeger** — which request was slow and where exactly
+- **Kibana** — what was the full error message
+
 ### Alerting (Grafana Unified Alerting)
 
 Provisioned Grafana alerts are included for:
