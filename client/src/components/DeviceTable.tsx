@@ -5,7 +5,11 @@ import { formatTimestamp } from "../utils/date";
 
 const PAGE_SIZE = 5;
 
-export function DeviceTable() {
+interface DeviceTableProps {
+  refreshSignal?: number;
+}
+
+export function DeviceTable({ refreshSignal = 0 }: DeviceTableProps) {
   const [devices, setDevices] = useState<Device[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -29,7 +33,7 @@ export function DeviceTable() {
     }
 
     void loadDevices();
-  }, [page]);
+  }, [page, refreshSignal]);
 
   return (
     <section className="panel">

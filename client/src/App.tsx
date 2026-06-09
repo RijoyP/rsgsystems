@@ -9,7 +9,7 @@ import { type EventSeverity } from "./types/monitoring";
 const Visualizations = lazy(() => import("./components/Visualizations").then((module) => ({ default: module.Visualizations })));
 
 function App() {
-  const { data, loading, error } = useDashboardData();
+  const { data, loading, error, refreshSignal } = useDashboardData();
   const [drilldownFilter, setDrilldownFilter] = useState<EventSeverity | null>(null);
   const [drilldownRequestId, setDrilldownRequestId] = useState(0);
 
@@ -43,12 +43,13 @@ function App() {
 
       <section className="two-col">
         <div id="devices">
-          <DeviceTable />
+          <DeviceTable refreshSignal={refreshSignal} />
         </div>
         <div id="events">
           <EventLog
             key={`event-log-${drilldownRequestId}`}
             initialFilter={drilldownFilter ?? "all"}
+            refreshSignal={refreshSignal}
           />
         </div>
       </section>

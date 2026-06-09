@@ -1,0 +1,11 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: msteams-rsgsystem
+    receivers:
+      - uid: msteams-rsgsystem-webhook
+        type: teams
+        disableResolveMessage: false
+        settings:
+          url: ${MSTEAMS_WEBHOOK_URL}

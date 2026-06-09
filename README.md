@@ -245,6 +245,30 @@ docker compose logs -f
 - Elasticsearch: http://localhost:9200
 - Kibana: http://localhost:5601
 
+### Microsoft Teams Alerts (Grafana)
+
+Grafana alert rules are pre-provisioned and can notify a Microsoft Teams channel using an incoming webhook.
+
+1. Create a Teams incoming webhook for the channel where you want alerts.
+2. Set the webhook URL before starting Docker Compose:
+
+```bash
+# PowerShell
+$env:MSTEAMS_WEBHOOK_URL = "https://outlook.office.com/webhook/your-webhook-url"
+```
+
+3. Start or restart the stack:
+
+```bash
+npm run docker:up
+```
+
+Provisioned alerting files:
+
+- `observability/grafana/provisioning/alerting/rules.yml`
+- `observability/grafana/provisioning/alerting/contact-points.yml`
+- `observability/grafana/provisioning/alerting/notification-policies.yml`
+
 ### Docker Compose Services Included
 
 - `server`: Node.js/Express API with OpenTelemetry tracing + metrics export enabled.
@@ -426,3 +450,66 @@ Trigger behavior:
 
 2. Add UX enhancements
 - Search + pagination for events/devices
+
+---
+
+## Improvements Implemented
+
+### 1. Live Data — WebSocket Push Updates
+
+The dashboard now receives live updates via WebSocket instead of relying solely on the initial HTTP fetch.
+
+**How it works:**
+
+```
+Edit devices.json or events.json
+        ↓
+fs.watch detects the file change (debounced 150ms)
+        ↓
+Server reads both JSON files and recalculates overview
+        ↓
+Broadcasts { type: "update", payload: { overview, devices, events } }
+        ↓
+WebSocket pushes message to all connected browsers
+        ↓
+useDashboardData updates overview state → OverviewCards re-renders
+refreshSignal increments → DeviceTable and EventLog re-fetch current page
+```
+
+**Files changed:**
+
+- `server/src/server.ts` — HTTP server upgraded to support WebSocket via `ws`. A `broadcastLatest()` function reads both JSON files and pushes the full update to all connected clients.
+- `server/src/services/monitoringService.ts` — Added `watchDataFiles(callback)` which uses `fs.watch` on `devices.json` and `events.json` with a 150ms debounce to prevent duplicate triggers on a single save.
+- `client/src/hooks/useDashboardData.ts` — Opens a WebSocket connection on mount. When an `update` message arrives, the overview state is updated immediately and a `refreshSignal` counter increments.
+- `client/src/App.tsx` — Passes `refreshSignal` down to `DeviceTable` and `EventLog`.
+- `client/src/components/DeviceTable.tsx` — Accepts `refreshSignal` prop. Added to `useEffect` dependency array so the current device page re-fetches when data changes.
+- `client/src/components/EventLog.tsx` — Accepts `refreshSignal` prop. Added to `useEffect` dependency array so the current event page re-fetches, respecting the active severity filter.
+
+**To test:**
+
+1. Start the app with `npm run dev`
+2. Open the dashboard at http://localhost:5173
+3. Edit `server/src/data/events.json` or `devices.json` and save
+4. The dashboard updates within 150ms without a page refresh
+
+---
+
+### 2. Architecture: Scaling to Production (Design Notes)
+
+The current WebSocket + `fs.watch` implementation demonstrates the live push pattern locally. The path to production would be:
+
+| Local (current) | Production |
+|---|---|
+| `fs.watch` on JSON files | IoT devices → Azure IoT Hub (MQTT) |
+| Express WebSocket server | Kafka consumer reads from IoT Hub Event Hub endpoint |
+| Single server process | Redis Pub/Sub bridges WebSocket messages across multiple pods |
+| Docker Compose | AKS with HPA — scales Express pods on CPU > 70% |
+| Env var secrets | Azure Key Vault via Secrets Store CSI driver |
+
+**Why Redis Pub/Sub is needed for multi-pod WebSocket:**
+
+With multiple AKS pods, a WebSocket client connects to one specific pod. If an event arrives on pod-1, only pod-1's clients would receive it. Redis Pub/Sub solves this — every pod publishes incoming events to Redis and subscribes to receive them, so all pods broadcast to their own connected clients regardless of which pod received the original event.
+
+**Why IoT devices do not connect to Kafka directly:**
+
+IoT devices (sensors, PLCs, industrial controllers) use lightweight protocols — MQTT, CoAP, or HTTP — because they are resource constrained. Azure IoT Hub acts as the bridge: devices connect via MQTT/HTTPS, and IoT Hub exposes a Kafka-compatible Event Hub endpoint that the Node.js consumer connects to using the same `kafkajs` client.

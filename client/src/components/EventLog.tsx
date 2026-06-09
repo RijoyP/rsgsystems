@@ -8,9 +8,10 @@ const PAGE_SIZE = 6;
 
 interface EventLogProps {
   initialFilter?: EventSeverity | "all";
+  refreshSignal?: number;
 }
 
-export function EventLog({ initialFilter = "all" }: EventLogProps) {
+export function EventLog({ initialFilter = "all", refreshSignal = 0 }: EventLogProps) {
   const [events, setEvents] = useState<MonitoringEvent[]>([]);
   const [filter, setFilter] = useState<EventSeverity | "all">(initialFilter);
   const [page, setPage] = useState(1);
@@ -33,7 +34,7 @@ export function EventLog({ initialFilter = "all" }: EventLogProps) {
     }
 
     void loadEvents();
-  }, [filter, page]);
+  }, [filter, page, refreshSignal]);
 
   return (
     <section className="panel">

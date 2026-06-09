@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, watch } from "node:fs";
 import path from "node:path";
 import {
   type Device,
@@ -50,6 +50,18 @@ export async function getEvents(): Promise<MonitoringEvent[]> {
     (a, b) =>
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
   );
+}
+
+export function watchDataFiles(callback: () => void): void {
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const trigger = () => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(callback, 150);
+  };
+
+  watch(resolveDataPath("devices.json"), trigger);
+  watch(resolveDataPath("events.json"), trigger);
 }
 
 export function calculateOverview(devices: Device[]): SystemOverview {
